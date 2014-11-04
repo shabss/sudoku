@@ -222,7 +222,7 @@ CellGrid* Sudoku::Search(CellGrid* grid) {
 
     int rv = SDKERR_SUCCESS;
     CellGrid* result = NULL;
-    CellGrid *tmpgrd = NULL;
+    CellGrid* tmpgrd = NULL;
 
     rv = Solved(grid);
     if (rv == SDKERR_SUCCESS) {
@@ -240,7 +240,8 @@ CellGrid* Sudoku::Search(CellGrid* grid) {
     assert(possible->Allowed() > 1);
 
     std::vector<int> pos = possible->Get();
-    for (unsigned int i = 0; i < pos.size(); i++) {
+    unsigned int i = 0;
+    for (; i < pos.size(); i++) {
         if (pos[i]) {
             if (tmpgrd) delete tmpgrd;
             tmpgrd = CloneCellGrid(grid);
@@ -267,6 +268,13 @@ CellGrid* Sudoku::Search(CellGrid* grid) {
     }//for
     if (result != tmpgrd) {
         delete tmpgrd;
+        tmpgrd = NULL;
+    }
+    if (i == pos.size()) {
+        if (result) {
+            delete result;
+            result = NULL;
+        }
     }
     return result;
 }
