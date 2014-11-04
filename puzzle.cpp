@@ -33,16 +33,18 @@ const char* Puzzle::GetMatrix() {
     return (const char*) m_Matrix;
 }
 
-int Puzzle::Init(FILE *fp) {
-    //printf("%s:%d: here\n", __FUNCTION__, __LINE__);
-    int rv = SDKERR_SUCCESS;
+int Puzzle::Init(char *fn) {
 
+    int rv = SDKERR_SUCCESS;
+    FILE *fp = fopen(fn, "rt");
     if (!fp) {
+        printf("Unable to open file %s\n", fn);
         return SDKERR_INVALID_PARAM;
     }
 
     rv = fseek(fp, 0, SEEK_SET);
     if (rv != 0) {
+        fclose(fp);
         return SDKERR_UNKNOWN;
     }
 
@@ -78,6 +80,7 @@ int Puzzle::Init(FILE *fp) {
         //printf("%s:%d: here\n", __FUNCTION__, __LINE__);
         if (col != m_Cols) {
             //unexpected number of cols
+            fclose(fp);
             return SDKERR_UNKNOWN;
         } 
         m = &m[col];
@@ -85,6 +88,7 @@ int Puzzle::Init(FILE *fp) {
 
     //to do: Check the values for sanity
     //printf("%s:%d: here\n", __FUNCTION__, __LINE__);
+    fclose(fp);
     return rv;
 }
 
@@ -93,8 +97,13 @@ int Puzzle::Show() {
     
     for (int i = 0; i < m_Rows; i++) {
         for (int j = 0; j < m_Cols; j++) {
-            printf(" %d%c", 
-                m_Matrix[(i*m_Cols) + j], 
+            char val = m_Matrix[(i*m_Cols) + j];
+            if (!val) {
+                val = ' ';
+            } else {
+                val+=48;
+            }
+            printf("%c%c", val, 
                 j < m_Cols - 1 ? ',' : '\n');
         }
     }

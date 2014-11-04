@@ -120,6 +120,16 @@ int CellGrid::Show()
     return SDKERR_SUCCESS;
 }
 
+int CellGrid::ShowCSV() {
+    for (int r = 1; r <= m_Dim; r++) {
+        for (int c = 1; c <= m_Dim; c++) {
+            Cell *cell = (Cell*) GetCell(MK_NAME(r,c));
+            printf("%d%c", cell->GetVal(),  (c != m_Dim) ? ',' : '\n');
+        }
+    }
+    return SDKERR_SUCCESS;
+}
+
 int CellGrid::SetCellVal(CellName cname, int val)
 {
     int rv = SDKERR_SUCCESS;
@@ -134,7 +144,7 @@ int CellGrid::SetCellVal(CellName cname, int val)
     }
 
     const Peers* peers = m_sdk->GetPeers(cname);
-    for (int i = 0; i < peers->size(); i++) {
+    for (unsigned int i = 0; i < peers->size(); i++) {
         CellName pname = (*peers)[i];
         std::map<CellName, Cell*>::iterator it;
         it = m_Grid->find(pname);
@@ -181,7 +191,7 @@ int CellGrid::Solved()
 
             //find if any peers have same values
             const Peers* peers = m_sdk->GetPeers(cname);
-            for (int i = 0; i < peers->size(); i++) {
+            for (unsigned int i = 0; i < peers->size(); i++) {
                 CellName pname = (*peers)[i];
                 Cell* pcell = (Cell*) GetCell(pname);
                 int pval = pcell->GetVal();

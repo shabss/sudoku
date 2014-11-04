@@ -11,17 +11,18 @@
 #include <assert.h>
 #include <conio.h>
 
-Sudoku* Sudoku::Create(Puzzle* p, void *info) {
-    Sudoku* s = new Sudoku(p);    
+Sudoku* Sudoku::Create(Puzzle* p, SDK_INFO* info) {
+    Sudoku* s = new Sudoku(p, info);    
     return s;
 }
 
-Sudoku::Sudoku(Puzzle *p)
+Sudoku::Sudoku(Puzzle *p, SDK_INFO* info)
 {
     m_Puzzle = p;
     m_CellPeers = new CellPeers();
     assert(m_CellPeers->empty());
     m_PickCellsLookup = NULL;
+    m_Info = info;
 }
 
 Sudoku::~Sudoku() {
@@ -49,7 +50,9 @@ int Sudoku::Init()
         printf("Sudoku: Error making peers\n");
         return rv;
     }
-
+    if (m_Info->opts & SDKOPT_VERBOSE) {
+        ShowPeers();
+    }
     return SDKERR_SUCCESS;
 }
 
@@ -195,47 +198,33 @@ int Sudoku::PlacePuzzle(CellGrid *grid)
     return rv;
 }
 
-int Sudoku::Solve() {
+CellGrid* Sudoku::Solve() {
 
     int rv = SDKERR_SUCCESS;
     CellGrid *solution = NULL;
 
     solution = MakeCellGrid();
-    //sdk->ShowCellGrid(grid);
-    //printf("\n===============\n");
     rv = PlacePuzzle(solution);
     if (rv != SDKERR_SUCCESS) {
         printf("%s:%d: Unsolvable puzzle\n");
         delete solution;
         solution = NULL;
-        return rv;
+        return solution;
     }
-    ShowCellGrid("Puzzle Possibilities:\n", solution);
-
+    if (m_Info->opts & SDKOPT_VERBOSE) {
+        ShowCellGrid("Puzzle Possibilities:\n", solution);
+    }
     solution = Search(solution);
-    if (!solution) {
-        printf("No Solution\n");
-    } else {
-        ShowCellGrid("Solved:\n", solution);
-    }
-
-    if (solution) {
-        delete solution;
-        solution = NULL;
-    }
-
-    return rv;
+    return solution;
 }
 
 CellGrid* Sudoku::Search(CellGrid* grid) {
 
     int rv = SDKERR_SUCCESS;
-    char msg[32];
     CellGrid* result = NULL;
 
     rv = Solved(grid);
     if (rv == SDKERR_SUCCESS) {
-        ShowCellGrid("Solution:\n", grid);
         return grid;
     }
 
@@ -250,20 +239,22 @@ CellGrid* Sudoku::Search(CellGrid* grid) {
     assert(possible->Allowed() > 1);
 
     std::vector<int> pos = possible->Get();
-    for (int i = 0; i < pos.size(); i++) {
+    for (unsigned int i = 0; i < pos.size(); i++) {
         if (pos[i]) {
-            //if ((i+1) == 9) {
-            //    printf("********Removing 9\n\n");
-            //}
             CellGrid *tmpgrd = CloneCellGrid(grid);
             rv = tmpgrd->SetCellVal(cell->GetName(), i + 1);
-            //sprintf(msg, "Place %1x in %1x%1x:\n", i + 1, 
-            //    GET_ROW(cname), GET_COL(cname));
-            //ShowCellGrid(msg, tmpgrd);
+            if (m_Info->opts & SDKOPT_VERBOSE) {
+                char msg[32];
+                sprintf(msg, "Place %1x in %1x%1x:\n", i + 1, 
+                    GET_ROW(cname), GET_COL(cname));
+                    ShowCellGrid(msg, tmpgrd);
+            }
             if (rv != SDKERR_SUCCESS) {
                 //if it didnt work then
                 //try another value
-                //printf("Backtrack -- ");
+                if (m_Info->opts & SDKOPT_VERBOSE) {
+                    printf("Backtrack -- ");
+                }
                 delete tmpgrd;
             } else {
                 result = Search(tmpgrd);
@@ -357,7 +348,7 @@ int Sudoku::ShowPeers()
         CellName cname = (*it).first;
         Peers* p = (*it).second;
         printf("%1x%1x(%02d): ", GET_ROW(cname), GET_COL(cname), p->size());
-        for (int i = 0; i < p->size(); i++) {
+        for (unsigned int i = 0; i < p->size(); i++) {
             CellName pname = (*p)[i];
             printf("%1x%1x, ", GET_ROW(pname), GET_COL(pname));
         }
@@ -367,40 +358,94 @@ int Sudoku::ShowPeers()
 }
 
 
+
+
 ////////////////////////
 ////////////////////////
 ////////////////////////
 ////////////////////////
 ////////////////////////
+
+void Help() 
+{
+    printf("Solves sudoku problem in file.csv provided.\n");
+    printf("Usage:\n");
+    printf("\tsudoku [-q] [-t] [-v] -f file.csv\n\n");
+    printf("\t\t-q \t Quite; Do not print the puzzle\n");
+    printf("\t\t-v \t Be verbose\n");
+    printf("\t\t-t \t Run tests\n");
+    printf("\t\t-f \t Puzzle file\n");
+}
+
+typedef struct _SDKARGS {
+    char* file;
+    unsigned int opts;
+} SDKARGS;
+
+int ParseArgs(int argv, char** args, SDKARGS* sdkargs)
+{
+    memset(sdkargs, 0, sizeof(SDKARGS));
+    for (int i = 1; i < argv; i++) {
+        if (!strcmp(args[i], "-v")) {
+            sdkargs->opts |=  SDKOPT_VERBOSE;
+        } else if (!strcmp(args[i], "-t")) {
+            sdkargs->opts |=  SDKOPT_TEST;
+        } else if (!strcmp(args[i], "-q")) {
+            sdkargs->opts |=  SDKOPT_QUITE;
+        } else if (!strcmp(args[i], "-f")) {
+            if (argv >= (i + 1)) {
+                sdkargs->file = args[++i];
+            }    
+        }
+    }
+
+    if (!sdkargs->file) {
+        return SDKERR_INVALID_PARAM;
+    } else {
+        return SDKERR_SUCCESS;
+    }
+}
 
 void main(int argn, char** args)
 {
-    int rv = SDKERR_SUCCESS;
-    char* fn = args[1];
+    SDKARGS arg;
+    int rv = ParseArgs(argn, args, &arg);
+    if (rv != SDKERR_SUCCESS) {
+        Help();
+        return;
+    }
 
     Puzzle p;
-    rv = p.Init(fopen(fn, "rt"));
-    rv = p.Show();
+    rv = p.Init(arg.file);
+    if (rv != SDKERR_SUCCESS) {
+        return;
+    }
 
-    Sudoku *sdk = Sudoku::Create(&p, NULL);
+    if (!(arg.opts & SDKOPT_QUITE)) {
+        printf("Puzzle:\n");
+        rv = p.Show();
+        printf("\n");
+    }
+
+    SDK_INFO sdkinfo;
+    sdkinfo.opts = arg.opts;
+    Sudoku *sdk = Sudoku::Create(&p, &sdkinfo);
     rv = sdk->Init();
     if (rv != SDKERR_SUCCESS) {
         printf("%s:%d: Error at sdk init\n");
     }
 
-    sdk->ShowPeers();
-
-    //CellGrid *grid = sdk->MakeCellGrid();
-    //sdk->ShowCellGrid(grid);
-    //printf("\n===============\n");
-    //sdk->PlacePuzzle(grid);
-    //sdk->ShowCellGrid(grid);
-    //delete grid;
-    rv = sdk->Solve();
-    if (rv != SDKERR_SUCCESS) {
+    CellGrid *grid = sdk->Solve();
+    if (grid) {
+        printf("Solution:\n");
+        grid->ShowCSV();
+    } else {
         printf("Not solved!\n");
     }
+
+    if (grid) {
+        delete grid;
+    }
     delete sdk;
-    getch();
 }
 

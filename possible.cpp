@@ -1,7 +1,7 @@
 
 #include "sudoku.h"
 #include "possible.h"
-
+#include "assert.h"
 
 Possible::Possible(int pos) : m_Pos(pos, 1) 
 {
@@ -76,7 +76,7 @@ int Possible::MaxCount() {
 
 int Possible::Show()
 {
-    for (int i = 0; i < m_Pos.size(); i++) {
+    for (unsigned int i = 0; i < m_Pos.size(); i++) {
         if (m_Pos[i]) {
             printf("%1d", i+1);
         } else {
@@ -97,11 +97,14 @@ int Possible::GetVal() {
         return SDKERR_INVALID_PARAM;
     } else if (m_Allowed < 1) {
         return SDKERR_CONSTRAINT;
-    } else for (int i = 0; i < m_Pos.size(); i++) {
+    } else for (unsigned int i = 0; i < m_Pos.size(); i++) {
         if (m_Pos[i]) {
             return i+1;
         }
     }
+    //should not get here;
+    assert(false);
+    return SDKERR_PROGRAM_ERROR;
 }
 
 int Possible::DoUT() 

@@ -12,6 +12,10 @@
 #define SDKERR_PROGRAM_ERROR    -3
 #define SDKERR_CONSTRAINT       -4
 
+#define SDKOPT_QUITE        0x01
+#define SDKOPT_VERBOSE      0x02
+#define SDKOPT_TEST         0x04
+
 //Support for only 9x9 matrix
 #define SDK_DIMENSION           9
 #define SDK_GRID_DIMENSION      3
@@ -31,6 +35,10 @@ typedef std::vector<CellName> Peers;
 typedef std::map<CellName, Peers*> CellPeers;
 //typedef std::map<CellName, Cell*> CellGrid;
 
+typedef struct SDK_INFO_ {
+    unsigned int opts;
+} SDK_INFO;
+
 class Sudoku 
 {
 
@@ -40,10 +48,12 @@ protected:
     Puzzle*         m_Puzzle;
     CellPeers*      m_CellPeers;
     Cell**          m_PickCellsLookup;
+public:
+    SDK_INFO*       m_Info;
 
 public:
-    static Sudoku* Create(Puzzle* p, void* info);
-    Sudoku(Puzzle* p);
+    static Sudoku* Create(Puzzle* p, SDK_INFO* info);
+    Sudoku(Puzzle* p, SDK_INFO* info);
     virtual ~Sudoku();
     
     int Init();
@@ -61,11 +71,12 @@ public:
     int ShowCellGrid(char* msg, CellGrid *grid);
 
     int PlacePuzzle(CellGrid *grid);
-    int Solve();
+    CellGrid* Solve();
     int Solved(CellGrid *grid);
     const Cell* PickCell(CellGrid *grid);
     int Show();
     CellGrid* Search(CellGrid *grid);
+    int WriteSolution(CellGrid *grid, char* file);
 
     const Peers* GetPeers(CellName name);
 };

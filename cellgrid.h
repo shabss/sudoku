@@ -20,6 +20,7 @@ public:
     int DeleteInternalGrid();
     int GetDim();
     int Show();
+    int ShowCSV();
     int SetCellVal(CellName cname, int val);
     const Cell* GetCell(CellName cname);
     int Solved();

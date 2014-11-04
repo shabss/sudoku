@@ -16,7 +16,7 @@ public:
     Puzzle();
     virtual ~Puzzle();
 
-    virtual int Init(FILE *fp);
+    virtual int Init(char *fn);
     virtual int Show();
     int GetRowsCount(); 
     int GetColsCount();
