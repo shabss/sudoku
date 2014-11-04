@@ -437,7 +437,9 @@ void main(int argn, char** args)
 
     CellGrid *grid = sdk->Solve();
     if (grid) {
-        printf("Solution:\n");
+        if (!(arg.opts & SDKOPT_QUITE)) {
+            printf("Solution:\n");
+        }
         grid->ShowCSV();
     } else {
         printf("Not solved!\n");
